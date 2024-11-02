@@ -1,4 +1,4 @@
-
+y
 #define BTN 33
 
 #define RED 4
@@ -28,5 +28,5 @@ void loop() {
   }
   // save current btn state into a variable to be used in next loop iteration
   prev_btn = btn;
-  
+  delay(100);
 }
