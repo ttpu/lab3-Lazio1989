@@ -1,32 +1,60 @@
-y
-#define BTN 33
+#include <Arduino.h>
 
-#define RED 4
-#define GRN 5
-#define YLW 19
-#define BLU 22
+#define btn 33
+#define red 4
+#define green 5
+#define yellow 19
+#define blue 22 
 
 void setup() {
-  // configure button as input
-  pinMode(BTN, INPUT);
-  // configure serial port speed
+  //defining button input
+  pinMode(btn, INPUT);
+  //serial begin
   Serial.begin(115200);
+  
+  //led configureation
+  pinMode(red, OUTPUT);
+  pinMode(green, OUTPUT);
+  pinMode(yellow, OUTPUT);
+  pinMode(blue, OUTPUT);
 }
 
 void loop() {
-  // this variable keeps the counting number of button pressed event
-  static int count = 0;
-  // this variable keeps its value even the function is called multiple times
-  static int prev_btn = LOW;
-  // read current button state (HIGH means pressed)
-  int btn = digitalRead(BTN);
-
-  // detect button pressed event
-  if (btn == HIGH && prev_btn == LOW){
+  
+  static int count;
+  
+  static int prev_btn = 0;
+  
+  int btns = digitalRead(btn);
+  //detect button press 
+  if  (btns == 1 && prev_btn == 0){
     count++;
     Serial.println(count);
+    // led turn off
+    digitalWrite(red, 0);
+    digitalWrite(green, 0);
+    digitalWrite(yellow, 0);
+    digitalWrite(blue, 0); 
+           
+    if (count == 1){
+      digitalWrite(red, 1);
+    }
+    if (count == 2){
+      digitalWrite(green, 1);
+    }
+    if (count == 3){
+      digitalWrite(yellow, 1);
+    }
+    if (count == 4){
+      digitalWrite(blue, 1);
+    }
+    if (count == 5){
+      count = 0;
+    }
+
   }
-  // save current btn state into a variable to be used in next loop iteration
-  prev_btn = btn;
+  prev_btn = btns;
   delay(100);
+
+
 }
