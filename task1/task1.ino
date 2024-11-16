@@ -1,32 +1,165 @@
+#include <Arduino.h>
+#include <WiFi.h>
+#include <PubSubClient.h>
 
-#define BTN 33
+#define btn 33
+#define red 4
+#define green 5
+#define yellow 19
+#define blue 22 
 
-#define RED 4
-#define GRN 5
-#define YLW 19
-#define BLU 22
+// Wireless connection data
+const char* ssid = "#Turin.uz";
+const char* pass = "Turin_2024@!";
+const char* wifi_status = "Trying to connect";
+int count_wifi = 0;
+
+WiFiClient wifi_client;
+PubSubClient mqtt_client(wifi_client);
+void my_callback (char* topic, byte* payload,  unsigned int len);
+
 
 void setup() {
-  // configure button as input
-  pinMode(BTN, INPUT);
-  // configure serial port speed
+  //defining button input
+  pinMode(btn, INPUT);
+  //serial begin
   Serial.begin(115200);
+  
+  //led configureation
+  pinMode(red, OUTPUT);
+  pinMode(green, OUTPUT);
+  pinMode(yellow, OUTPUT);
+  pinMode(blue, OUTPUT);
+
+  // WIFI connection
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid,pass);
+  delay(100);
+ 
+  //check wifi connected
+  while (WiFi.status() != WL_CONNECTED){
+    count_wifi ++;
+    Serial.println(wifi_status);
+    Serial.println(count_wifi);
+    delay(1000);
+ 
+  }
+  count_wifi=0;
+  Serial.println("WiFi Connected"); 
+  
+  Serial.println("IP: "); 
+  Serial.println(WiFi.localIP()); 
+  
+  Serial.println("MAC: "); 
+  Serial.println(WiFi.macAddress()); 
+
+  mqtt_client.setServer("mqtt.iotserver.uz", 1883);
+  mqtt_client.setCallback(my_callback);
+
 }
 
 void loop() {
-  // this variable keeps the counting number of button pressed event
-  static int count = 0;
-  // this variable keeps its value even the function is called multiple times
-  static int prev_btn = LOW;
-  // read current button state (HIGH means pressed)
-  int btn = digitalRead(BTN);
+  while (!mqtt_client.connected()){
+    String macAddr = WiFi.macAddress();
+    String macSuffix = macAddr.substring(macAddr.length() - 5);
+    macSuffix.replace(":", "");
 
-  // detect button pressed event
-  if (btn == HIGH && prev_btn == LOW){
+    String myID = "edacs_lab4";
+    myID += macSuffix;
+
+    int mres = mqtt_client.connect(myID.c_str(),"userTTPU", "mqttpass");
+      if (mres){
+        Serial.print("mqtt connected: ");
+        Serial.print(mres);
+        mqtt_client.subscribe("ttpu/edacs/lab4");
+        mqtt_client.subscribe("ttpu/edacs/takhirov");
+        mqtt_client.publish("ttpu/edacs/msg", "hello from takhirov");
+      }
+      else {
+        Serial.print("mqtt Not connected, trying: ");
+        Serial.print(mres);
+        delay(3000);
+      }
+
+  }
+
+  mqtt_client.loop();
+
+  static int count;
+  
+  static int prev_btn = 0;
+  
+  int btns = digitalRead(btn);
+  //detect button press 
+ if  (btns == 1 && prev_btn == 0){
     count++;
     Serial.println(count);
-  }
-  // save current btn state into a variable to be used in next loop iteration
-  prev_btn = btn;
+    // led turn off
+    /*digitalWrite(red, 0);
+    digitalWrite(green, 0);
+    digitalWrite(yellow, 0);
+    digitalWrite(blue, 0); 
+           
+    if (count == 1){
+      digitalWrite(red, 1);
+    }
+    if (count == 2){
+      digitalWrite(green, 1);
+    }
+    if (count == 3){
+      digitalWrite(yellow, 1);
+    }
+    if (count == 4){
+      digitalWrite(blue, 1);
+    }*/
+    if (count == 5){
+      count = 0;
+    }
+
+    String countmsg = String(count);  
+    mqtt_client.publish("ttpu/edacs/fuadov", countmsg.c_str());
   
+  }
+  prev_btn = btns;
+  delay(100);
+
+
+}
+
+
+void my_callback (char* topic, byte* payload,  unsigned int len){
+  String msg;
+  for (int i=0; i<len; i++){
+    msg += (char)payload[i];
+    Serial.print("Topic: ");
+    Serial.println(topic);
+
+    Serial.print("MSG: ");
+    Serial.println(msg);
+
+    String topicStr = String(topic);
+    if (topicStr == "ttpu/edacs/takhirov"){
+      if (msg == "0"){
+        digitalWrite(red, 0);
+        digitalWrite(green, 0);
+        digitalWrite(yellow, 0);
+        digitalWrite(blue, 0); 
+      }
+      if (msg == "1"){
+        digitalWrite(red, 1);
+      }
+      if (msg == "2"){
+        digitalWrite(green, 1);
+        digitalWrite(red, 0);
+      }
+      if (msg =="3"){
+        digitalWrite(yellow, 1);
+        digitalWrite(green, 0);
+      }
+      if (msg == "4"){
+        digitalWrite(blue, 1);
+        digitalWrite(yellow, 0);
+      }
+    }
+  }
 }
