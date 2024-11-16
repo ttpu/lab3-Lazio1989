@@ -15,7 +15,8 @@ const char* wifi_status = "Trying to connect";
 int count_wifi = 0;
 
 WiFiClient wifi_client;
-PubSubClient mqtt_client (wifi_client);
+PubSubClient mqtt_client(wifi_client);
+void my_callback (char* topic, byte* payload,  unsigned int len);
 
 
 void setup() {
@@ -71,7 +72,8 @@ void loop() {
         Serial.print("mqtt connected: ");
         Serial.print(mres);
         mqtt_client.subscribe("ttpu/edacs/lab4");
-        mqtt_client.publish("ttpu/edacs/msg", "hello");
+        mqtt_client.subscribe("ttpu/edacs/takhirov");
+        mqtt_client.publish("ttpu/edacs/msg", "hello from takhirov");
       }
       else {
         Serial.print("mqtt Not connected, trying: ");
@@ -89,11 +91,11 @@ void loop() {
   
   int btns = digitalRead(btn);
   //detect button press 
-  if  (btns == 1 && prev_btn == 0){
+ if  (btns == 1 && prev_btn == 0){
     count++;
     Serial.println(count);
     // led turn off
-    digitalWrite(red, 0);
+    /*digitalWrite(red, 0);
     digitalWrite(green, 0);
     digitalWrite(yellow, 0);
     digitalWrite(blue, 0); 
@@ -109,17 +111,55 @@ void loop() {
     }
     if (count == 4){
       digitalWrite(blue, 1);
-    }
+    }*/
     if (count == 5){
       count = 0;
     }
 
+    String countmsg = String(count);  
+    mqtt_client.publish("ttpu/edacs/fuadov", countmsg.c_str());
+  
   }
   prev_btn = btns;
   delay(100);
 
 
 }
+
+
 void my_callback (char* topic, byte* payload,  unsigned int len){
-  Serial.println("Msg recieved");
+  String msg;
+  for (int i=0; i<len; i++){
+    msg += (char)payload[i];
+    Serial.print("Topic: ");
+    Serial.println(topic);
+
+    Serial.print("MSG: ");
+    Serial.println(msg);
+
+    String topicStr = String(topic);
+    if (topicStr == "ttpu/edacs/takhirov"){
+      if (msg == "0"){
+        digitalWrite(red, 0);
+        digitalWrite(green, 0);
+        digitalWrite(yellow, 0);
+        digitalWrite(blue, 0); 
+      }
+      if (msg == "1"){
+        digitalWrite(red, 1);
+      }
+      if (msg == "2"){
+        digitalWrite(green, 1);
+        digitalWrite(red, 0);
+      }
+      if (msg =="3"){
+        digitalWrite(yellow, 1);
+        digitalWrite(green, 0);
+      }
+      if (msg == "4"){
+        digitalWrite(blue, 1);
+        digitalWrite(yellow, 0);
+      }
+    }
+  }
 }
